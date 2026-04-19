@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import subprocess
 import sys
 from pathlib import Path
+
+from prefect.flows import Flow
 
 
 DEPLOY_BRANCHES = {
@@ -100,7 +103,7 @@ def should_redeploy_all(changed_files: list[str]) -> bool:
 
 def list_all_pipeline_dirs() -> list[Path]:
     """
-    Lista todos os diretórios de pipeline disponíveis no repositório.
+    Lista todos os diretórios de pipeline com flows.py.
 
     Args:
         None.
@@ -116,7 +119,7 @@ def list_all_pipeline_dirs() -> list[Path]:
             continue
 
         for pipeline_dir in type_dir.iterdir():
-            if pipeline_dir.is_dir():
+            if pipeline_dir.is_dir() and (pipeline_dir / "flows.py").exists():
                 pipeline_dirs.append(pipeline_dir)
 
     return sorted(pipeline_dirs)
@@ -148,7 +151,8 @@ def get_changed_pipeline_dirs(changed_files: list[str]) -> list[Path]:
             continue
 
         pipeline_dir = Path(*parts[:3])
-        pipeline_dirs.add(pipeline_dir)
+        if (pipeline_dir / "flows.py").exists():
+            pipeline_dirs.add(pipeline_dir)
 
     return sorted(pipeline_dirs)
 
@@ -166,9 +170,126 @@ def get_environment_from_branch(branch: str) -> str:
     return DEPLOY_BRANCHES[branch]
 
 
+def path_to_module(pipeline_dir: Path) -> str:
+    """
+    Converte o diretório do pipeline para o módulo do flows.py.
+
+    Args:
+        pipeline_dir: Diretório do pipeline.
+
+    Returns:
+        Caminho do módulo Python para import.
+    """
+    return ".".join((*pipeline_dir.parts, "flows"))
+
+
+def get_entrypoint(pipeline_dir: Path, flow_obj: Flow) -> str:
+    """
+    Monta o entrypoint do flow a partir do diretório e da função decorada.
+
+    Args:
+        pipeline_dir: Diretório do pipeline.
+        flow_obj: Objeto Flow detectado no módulo.
+
+    Returns:
+        Entrypoint no formato caminho/arquivo.py:nome_da_funcao.
+    """
+    flow_file = (pipeline_dir / "flows.py").as_posix()
+    return f"{flow_file}:{flow_obj.fn.__name__}"
+
+
+def get_flow_from_module(module_name: str) -> Flow:
+    """
+    Importa o módulo e retorna o flow principal detectado.
+
+    Args:
+        module_name: Caminho do módulo do flows.py.
+
+    Returns:
+        Objeto Flow encontrado no módulo.
+
+    Raises:
+        ValueError: Quando nenhum ou mais de um flow é encontrado.
+    """
+    module = importlib.import_module(module_name)
+
+    flows = [
+        value
+        for value in vars(module).values()
+        if isinstance(value, Flow)
+    ]
+
+    if not flows:
+        raise ValueError(f"No Prefect flow found in module '{module_name}'.")
+
+    if len(flows) > 1:
+        raise ValueError(
+            f"More than one Prefect flow found in module '{module_name}'."
+        )
+
+    return flows[0]
+
+
+def get_deployment_name(flow_obj: Flow, env: str) -> str:
+    """
+    Retorna o nome do deployment com base no nome do flow e ambiente.
+
+    Args:
+        flow_obj: Objeto Flow detectado.
+        env: Ambiente de deploy.
+
+    Returns:
+        Nome final do deployment.
+    """
+    if env == "prod":
+        return flow_obj.name
+
+    return f"{flow_obj.name} - Dev"
+
+
+def get_deployment_tags(env: str) -> list[str]:
+    """
+    Retorna as tags padrão do deployment por ambiente.
+
+    Args:
+        env: Ambiente de deploy.
+
+    Returns:
+        Lista de tags do deployment.
+    """
+    if env == "prod":
+        return ["prod"]
+
+    return ["dev"]
+
+
+def describe_pipeline_deployment(pipeline_dir: Path, env: str) -> dict[str, str | list[str]]:
+    """
+    Monta os metadados de deploy de um pipeline.
+
+    Args:
+        pipeline_dir: Diretório do pipeline.
+        env: Ambiente de deploy.
+
+    Returns:
+        Dicionário com dados necessários para o deploy.
+    """
+    module_name = path_to_module(pipeline_dir)
+    flow_obj = get_flow_from_module(module_name)
+
+    return {
+        "pipeline_dir": pipeline_dir.as_posix(),
+        "module_name": module_name,
+        "flow_name": flow_obj.name,
+        "entrypoint": get_entrypoint(pipeline_dir, flow_obj),
+        "deployment_name": get_deployment_name(flow_obj, env),
+        "tags": get_deployment_tags(env),
+    }
+
+
 def main() -> int:
     """
-    Identifica quais pipelines devem ser deployados no ambiente atual.
+    Identifica pipelines alterados e monta os metadados de deploy.
 
     Args:
         None.
@@ -209,6 +330,16 @@ def main() -> int:
     print("Pipelines selected for deployment:")
     for pipeline_dir in pipeline_dirs:
         print(f" - {pipeline_dir}")
+
+    print("Deployment metadata:")
+    for pipeline_dir in pipeline_dirs:
+        deployment = describe_pipeline_deployment(pipeline_dir, env)
+        print(f" - pipeline_dir: {deployment['pipeline_dir']}")
+        print(f"   module_name: {deployment['module_name']}")
+        print(f"   flow_name: {deployment['flow_name']}")
+        print(f"   entrypoint: {deployment['entrypoint']}")
+        print(f"   deployment_name: {deployment['deployment_name']}")
+        print(f"   tags: {deployment['tags']}")
 
     return 0
 
