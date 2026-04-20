@@ -1,0 +1,133 @@
+# Prefect Self Hosted Docker Compose
+# https://docs.prefect.io/v3/how-to-guides/self-hosted/docker-compose
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: venebre-postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect -d prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_DB: prefect
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: prefect
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - prefect-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: venebre-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - redis_data:/data
+    networks:
+      - prefect-network
+
+  prefect-server:
+    image: prefecthq/prefect:3.6.27-python3.13
+    container_name: venebre-prefect-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_SERVER_API_PORT: 4200
+      PREFECT_SERVER_UI_API_URL: http://prefect-server:4200/api
+      PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+      PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+      PREFECT_REDIS_MESSAGING_HOST: redis
+      PREFECT_REDIS_MESSAGING_PORT: 6379
+      PREFECT_REDIS_MESSAGING_DB: 0
+      PREFECT_SERVER_ANALYTICS_ENABLED: "false"
+      DO_NOT_TRACK: 1
+    command: prefect server start --no-services
+    expose:
+      - "4200"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health', timeout=2)"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - prefect-network
+
+  prefect-services:
+    image: prefecthq/prefect:3.6.27-python3.13
+    container_name: venebre-prefect-services
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
+      PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+      PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+      PREFECT_REDIS_MESSAGING_HOST: redis
+      PREFECT_REDIS_MESSAGING_PORT: 6379
+      PREFECT_REDIS_MESSAGING_DB: 0
+      PREFECT_SERVER_ANALYTICS_ENABLED: "false"
+      DO_NOT_TRACK: 1
+    command: prefect server services start
+    networks:
+      - prefect-network
+  
+  prefect-worker:
+    image: prefecthq/prefect-gcp:0.6.17-python3.13-prefect3.6.27
+    container_name: venebre-prefect-worker
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/prefect/credentials/gcp-credentials.json
+    command: prefect worker start --pool "venebre-cloud-run"
+    volumes:
+      - ./credentials/gcp-credentials.json:/opt/prefect/credentials/gcp-credentials.json:ro
+    networks:
+      - prefect-network
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: venebre-nginx
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - prefect-network
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  prefect-network:
