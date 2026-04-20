@@ -7,8 +7,10 @@ A big reason why I started this project is because, as a data engineer, I got ve
 So this project became a way to go back to that a little bit and understand things better under the hood Not only from the data side, but also from the platform side too, orchestration, execution, auth, reverse proxy, HTTPS, containers, deploy flow, all of that
 
 The idea was basically to create a real and functional data platform, like something a startup could actually use in the beginning, not something huge, not something overengineered, but also not just a toy project
-<img width="1487" height="855" alt="image" src="https://github.com/user-attachments/assets/c3bd5804-5f11-4d64-8ed7-57a21b800b33" />
 
+---
+
+<img width="1487" height="855" alt="image" src="https://github.com/user-attachments/assets/c3bd5804-5f11-4d64-8ed7-57a21b800b33" />
 
 ---
 
