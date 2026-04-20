@@ -72,3 +72,6 @@ docker-compose.override.yml
 
 # Local run artifacts
 .local/
+
+# nginx
+.htpasswd
