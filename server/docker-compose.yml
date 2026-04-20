@@ -102,7 +102,7 @@ services:
         condition: service_healthy
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
-    command: prefect worker start --pool "venebre-cloud-run"
+    command: prefect worker start --pool "venebre-cloud-run" --type cloud-run
     networks:
       - prefect-network
 
