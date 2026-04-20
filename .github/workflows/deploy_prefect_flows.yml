@@ -38,11 +38,19 @@ jobs:
             exit 1
           fi
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (dev)
+        if: github.ref_name == 'dev'
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ github.ref_name == 'dev' && secrets.GCP_WIF_PROVIDER_DEV || secrets.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ github.ref_name == 'dev' && secrets.GCP_SERVICE_ACCOUNT_DEV || secrets.GCP_SERVICE_ACCOUNT_PROD }}
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER_DEV }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_DEV }}
+
+      - name: Authenticate to Google Cloud (prod)
+        if: github.ref_name == 'main'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_PROD }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
