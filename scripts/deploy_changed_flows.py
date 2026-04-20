@@ -25,6 +25,21 @@ IMAGE_BY_ENV = {
     "prod": "us-south1-docker.pkg.dev/venebre-prod/venebre-prefect/runtime:prod",
 }
 
+PROJECT_BY_ENV = {
+    "dev": "venebre-dev",
+    "prod": "venebre-prod",
+}
+
+REGION_BY_ENV = {
+    "dev": "us-south1",
+    "prod": "us-south1",
+}
+
+SERVICE_ACCOUNT_BY_ENV = {
+    "dev": "prefect-runner@venebre-dev.iam.gserviceaccount.com",
+    "prod": "prefect-runner@venebre-prod.iam.gserviceaccount.com",
+}
+
 WORK_POOL_BY_ENV = {
     "dev": "venebre-cloud-run-dev",
     "prod": "venebre-cloud-run-prod",
@@ -272,8 +287,16 @@ def deploy_flow(pipeline_dir: Path, env: str) -> None:
     deployment_name = build_deployment_name(flow.name, env)
     work_pool_name = WORK_POOL_BY_ENV[env]
     image = IMAGE_BY_ENV[env]
+    project = PROJECT_BY_ENV[env]
+    region = REGION_BY_ENV[env]
+    service_account_name = SERVICE_ACCOUNT_BY_ENV[env]
     tags = TAGS_BY_ENV[env]
     parameters = {"env": env}
+    job_variables = {
+        "region": region,
+        "service_account_name": service_account_name,
+        "credentials": {"project": project},
+    }
 
     print(f"[deploy_flow] pipeline_dir={pipeline_dir}")
     print(f"[deploy_flow] module_name={module_name}")
@@ -281,13 +304,18 @@ def deploy_flow(pipeline_dir: Path, env: str) -> None:
     print(f"[deploy_flow] deployment_name={deployment_name}")
     print(f"[deploy_flow] work_pool_name={work_pool_name}")
     print(f"[deploy_flow] image={image}")
+    print(f"[deploy_flow] project={project}")
+    print(f"[deploy_flow] region={region}")
+    print(f"[deploy_flow] service_account_name={service_account_name}")
     print(f"[deploy_flow] tags={tags}")
     print(f"[deploy_flow] parameters={parameters}")
+    print(f"[deploy_flow] job_variables={job_variables}")
 
     flow.deploy(
         name=deployment_name,
         work_pool_name=work_pool_name,
         image=image,
+        job_variables=job_variables,
         parameters=parameters,
         tags=tags,
         build=False,
