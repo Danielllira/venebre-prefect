@@ -38,91 +38,19 @@ jobs:
             exit 1
           fi
 
-      - name: Validate GCP auth inputs (dev)
-        if: github.ref_name == 'dev'
-        env:
-          GCP_WIF_PROVIDER_DEV: ${{ secrets.GCP_WIF_PROVIDER_DEV }}
-          GCP_SERVICE_ACCOUNT_DEV: ${{ secrets.GCP_SERVICE_ACCOUNT_DEV }}
-        run: |
-          if [ -z "$GCP_WIF_PROVIDER_DEV" ]; then
-            echo "::error::GCP_WIF_PROVIDER_DEV is empty or unavailable"
-            exit 1
-          fi
-
-          if [ -z "$GCP_SERVICE_ACCOUNT_DEV" ]; then
-            echo "::error::GCP_SERVICE_ACCOUNT_DEV is empty or unavailable"
-            exit 1
-          fi
-
-          case "$GCP_WIF_PROVIDER_DEV" in
-            projects/*/locations/global/workloadIdentityPools/*/providers/*)
-              echo "Dev WIF provider format looks valid"
-              ;;
-            *)
-              echo "::error::GCP_WIF_PROVIDER_DEV has unexpected format"
-              exit 1
-              ;;
-          esac
-
-          case "$GCP_SERVICE_ACCOUNT_DEV" in
-            *@*.iam.gserviceaccount.com)
-              echo "Dev service account format looks valid"
-              ;;
-            *)
-              echo "::error::GCP_SERVICE_ACCOUNT_DEV has unexpected format"
-              exit 1
-              ;;
-          esac
-
-      - name: Validate GCP auth inputs (prod)
-        if: github.ref_name == 'main'
-        env:
-          GCP_WIF_PROVIDER_PROD: ${{ secrets.GCP_WIF_PROVIDER_PROD }}
-          GCP_SERVICE_ACCOUNT_PROD: ${{ secrets.GCP_SERVICE_ACCOUNT_PROD }}
-        run: |
-          if [ -z "$GCP_WIF_PROVIDER_PROD" ]; then
-            echo "::error::GCP_WIF_PROVIDER_PROD is empty or unavailable"
-            exit 1
-          fi
-
-          if [ -z "$GCP_SERVICE_ACCOUNT_PROD" ]; then
-            echo "::error::GCP_SERVICE_ACCOUNT_PROD is empty or unavailable"
-            exit 1
-          fi
-
-          case "$GCP_WIF_PROVIDER_PROD" in
-            projects/*/locations/global/workloadIdentityPools/*/providers/*)
-              echo "Prod WIF provider format looks valid"
-              ;;
-            *)
-              echo "::error::GCP_WIF_PROVIDER_PROD has unexpected format"
-              exit 1
-              ;;
-          esac
-
-          case "$GCP_SERVICE_ACCOUNT_PROD" in
-            *@*.iam.gserviceaccount.com)
-              echo "Prod service account format looks valid"
-              ;;
-            *)
-              echo "::error::GCP_SERVICE_ACCOUNT_PROD has unexpected format"
-              exit 1
-              ;;
-          esac
-
       - name: Authenticate to Google Cloud (dev)
         if: github.ref_name == 'dev'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER_DEV }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_DEV }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_DEV }}
 
       - name: Authenticate to Google Cloud (prod)
         if: github.ref_name == 'main'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_PROD }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_PROD }}
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
