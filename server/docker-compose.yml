@@ -92,17 +92,30 @@ services:
     command: prefect server services start
     networks:
       - prefect-network
-  
-  prefect-worker:
+
+  prefect-worker-dev:
     image: prefecthq/prefect-gcp:0.6.17-python3.13-prefect3.6.27
-    container_name: venebre-prefect-worker
+    container_name: venebre-prefect-worker-dev
     restart: unless-stopped
     depends_on:
       prefect-server:
         condition: service_healthy
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
-    command: prefect worker start --pool "venebre-cloud-run" --type cloud-run-v2
+    command: prefect worker start --pool "venebre-cloud-run-dev" --type cloud-run-v2
+    networks:
+      - prefect-network
+
+  prefect-worker-prod:
+    image: prefecthq/prefect-gcp:0.6.17-python3.13-prefect3.6.27
+    container_name: venebre-prefect-worker-prod
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+    command: prefect worker start --pool "venebre-cloud-run-prod" --type cloud-run-v2
     networks:
       - prefect-network
 
