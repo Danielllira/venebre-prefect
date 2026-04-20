@@ -1,8 +1,15 @@
 from prefect import task
-from datetime import datetime
+
+from pipelines.utils.dates import now
+from pipelines.utils.logger import log
 
 
 @task
 def extract_weather_data() -> dict:
-    now = datetime.now()
-    return {"source": "api_weather_data", "status": "ok", "extracted_at": now}
+    extracted_at = now()
+    log(f"teste acontecendo em {extracted_at}")
+    return {
+        "source": "api_weather_data",
+        "status": "ok",
+        "extracted_at": extracted_at,
+    }
