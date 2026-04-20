@@ -221,11 +221,7 @@ def get_flow_from_module(module_name: str) -> Flow:
     """
     module = importlib.import_module(module_name)
 
-    flows = [
-        value
-        for value in vars(module).values()
-        if isinstance(value, Flow)
-    ]
+    flows = [value for value in vars(module).values() if isinstance(value, Flow)]
 
     if len(flows) == 0:
         raise ValueError(f"Nenhum Flow encontrado no módulo '{module_name}'.")

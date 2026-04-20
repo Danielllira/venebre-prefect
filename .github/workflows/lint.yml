@@ -41,4 +41,4 @@ jobs:
 
       - name: Run flake8
         run: |
-          uv run flake8 .
+          uv run flake8 . --exclude .venv
