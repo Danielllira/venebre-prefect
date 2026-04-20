@@ -102,10 +102,7 @@ services:
         condition: service_healthy
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
-      GOOGLE_APPLICATION_CREDENTIALS: /opt/prefect/credentials/gcp-credentials.json
     command: prefect worker start --pool "venebre-cloud-run"
-    volumes:
-      - ./credentials/gcp-credentials.json:/opt/prefect/credentials/gcp-credentials.json:ro
     networks:
       - prefect-network
 
