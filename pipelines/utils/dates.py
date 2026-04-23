@@ -11,10 +11,10 @@ SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
 
 def now(utc: bool = False) -> dt.datetime:
     """
-    Retorna datetime.now() em UTC ou BRT.
+    Returns datetime.now() in UTC or BRT.
 
     Args:
-        utc: Quando `True`, usa UTC. Por padrão, usa America/Sao_Paulo.
+        utc: When `True`, uses UTC. By default, uses America/Sao_Paulo.
     """
     if utc:
         return dt.datetime.now(tz=UTC_TZ)
@@ -25,15 +25,15 @@ def from_relative_date(
     relative_date: Optional[str] = None,
 ) -> Optional[dt.date | dt.datetime]:
     """
-    Converte uma data relativa para um objeto de data.
+    Converts a relative date into a date object.
 
-    Suporta os formatos:
-        `D-N`: data atual menos `N` dias
-        `M-N`: primeiro dia do mês atual menos `N` meses
-        `Y-N`: primeiro dia do ano atual menos `N` anos
+    Supports the formats:
+        `D-N`: current date minus `N` days
+        `M-N`: first day of the current month minus `N` months
+        `Y-N`: first day of the current year minus `N` years
 
-    Caso o valor não seja uma data relativa, tenta convertê-lo
-    para `datetime` via `datetime.fromisoformat()`.
+    If the value is not a relative date, it tries to convert it
+    to `datetime` via `datetime.fromisoformat()`.
     """
     if relative_date is None:
         log("Relative date is None, returning None", level="info")

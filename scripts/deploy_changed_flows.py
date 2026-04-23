@@ -53,13 +53,13 @@ TAGS_BY_ENV = {
 
 def run_command(command: list[str]) -> str:
     """
-    Executa um comando no shell e retorna a saída em texto.
+    Runs a shell command and returns the text output.
 
     Args:
-        command: Lista com o comando e seus argumentos.
+        command: List containing the command and its arguments.
 
     Returns:
-        Saída do comando sem espaços extras.
+        Command output without extra whitespace.
     """
     result = subprocess.run(
         command,
@@ -72,26 +72,26 @@ def run_command(command: list[str]) -> str:
 
 def get_current_branch() -> str:
     """
-    Retorna o nome da branch atual do repositório.
+    Returns the name of the repository's current branch.
 
     Args:
         None.
 
     Returns:
-        Nome da branch atual.
+        Name of the current branch.
     """
     return run_command(["git", "rev-parse", "--abbrev-ref", "HEAD"])
 
 
 def get_changed_files() -> list[str]:
     """
-    Retorna os arquivos alterados no último commit.
+    Returns the files changed in the last commit.
 
     Args:
         None.
 
     Returns:
-        Lista de caminhos de arquivos alterados.
+        List of changed file paths.
     """
     try:
         output = run_command(["git", "diff", "--name-only", "HEAD^", "HEAD"])
@@ -103,26 +103,26 @@ def get_changed_files() -> list[str]:
 
 def should_deploy(branch: str) -> bool:
     """
-    Valida se a branch atual deve publicar deployments.
+    Checks whether the current branch should publish deployments.
 
     Args:
-        branch: Nome da branch atual.
+        branch: Name of the current branch.
 
     Returns:
-        True quando a branch é elegível para deploy.
+        True when the branch is eligible for deployment.
     """
     return branch in DEPLOY_BRANCHES
 
 
 def should_redeploy_all(changed_files: list[str]) -> bool:
     """
-    Valida se mudanças compartilhadas exigem redeploy de todos os pipelines.
+    Checks whether shared changes require redeploying all pipelines.
 
     Args:
-        changed_files: Lista de arquivos alterados no commit atual.
+        changed_files: List of files changed in the current commit.
 
     Returns:
-        True quando todos os pipelines devem ser republicados.
+        True when all pipelines should be republished.
     """
     return any(
         changed_file.startswith(global_path)
@@ -133,13 +133,13 @@ def should_redeploy_all(changed_files: list[str]) -> bool:
 
 def list_all_pipeline_dirs() -> list[Path]:
     """
-    Lista todos os diretórios de pipeline que possuem flows.py.
+    Lists all pipeline directories that contain flows.py.
 
     Args:
         None.
 
     Returns:
-        Lista ordenada com os diretórios dos pipelines válidos.
+        Sorted list of valid pipeline directories.
     """
     pipeline_dirs: list[Path] = []
 
@@ -162,13 +162,13 @@ def list_all_pipeline_dirs() -> list[Path]:
 
 def get_changed_pipeline_dirs(changed_files: list[str]) -> list[Path]:
     """
-    Converte arquivos alterados em diretórios raiz de pipelines afetados.
+    Converts changed files into root directories of affected pipelines.
 
     Args:
-        changed_files: Lista de arquivos alterados no commit atual.
+        changed_files: List of files changed in the current commit.
 
     Returns:
-        Lista ordenada com os diretórios de pipelines afetados.
+        Sorted list of affected pipeline directories.
     """
     pipeline_dirs: set[Path] = set()
 
@@ -197,54 +197,54 @@ def get_changed_pipeline_dirs(changed_files: list[str]) -> list[Path]:
 
 def get_environment_from_branch(branch: str) -> str:
     """
-    Converte a branch atual no ambiente de deploy correspondente.
+    Converts the current branch into the corresponding deployment environment.
 
     Args:
-        branch: Nome da branch atual.
+        branch: Name of the current branch.
 
     Returns:
-        Nome do ambiente.
+        Environment name.
     """
     return DEPLOY_BRANCHES[branch]
 
 
 def build_module_name(pipeline_dir: Path) -> str:
     """
-    Monta o nome do módulo Python de flows de um pipeline.
+    Builds the Python module name for a pipeline's flows.
 
     Args:
-        pipeline_dir: Diretório raiz do pipeline.
+        pipeline_dir: Root directory of the pipeline.
 
     Returns:
-        Nome importável do módulo flows.py.
+        Importable name of the flows.py module.
     """
     return ".".join((*pipeline_dir.parts, "flows"))
 
 
 def get_flow_from_module(module_name: str) -> Flow:
     """
-    Encontra o único flow deployável dentro de um módulo flows.
+    Finds the single deployable flow inside a flows module.
 
     Args:
-        module_name: Nome do módulo Python a ser importado.
+        module_name: Name of the Python module to import.
 
     Returns:
-        Objeto Flow encontrado no módulo.
+        Flow object found in the module.
 
     Raises:
-        ValueError: Quando nenhum ou mais de um Flow é encontrado.
+        ValueError: When no Flow or more than one Flow is found.
     """
     module = importlib.import_module(module_name)
 
     flows = [value for value in vars(module).values() if isinstance(value, Flow)]
 
     if len(flows) == 0:
-        raise ValueError(f"Nenhum Flow encontrado no módulo '{module_name}'.")
+        raise ValueError(f"No Flow found in module '{module_name}'.")
 
     if len(flows) > 1:
         raise ValueError(
-            f"Mais de um Flow encontrado no módulo '{module_name}'. "
-            "Mantenha apenas um flow deployável por flows.py."
+            f"More than one Flow found in module '{module_name}'. "
+            "Keep only one deployable flow per flows.py."
         )
 
     return flows[0]
@@ -252,14 +252,14 @@ def get_flow_from_module(module_name: str) -> Flow:
 
 def build_deployment_name(flow_name: str, env: str) -> str:
     """
-    Monta o nome final do deployment a partir do flow e do ambiente.
+    Builds the final deployment name from the flow and environment.
 
     Args:
-        flow_name: Nome do flow no Prefect.
-        env: Ambiente do deployment.
+        flow_name: Name of the flow in Prefect.
+        env: Deployment environment.
 
     Returns:
-        Nome final do deployment.
+        Final deployment name.
     """
     if env == "dev":
         return f"{flow_name} - Dev"
@@ -269,15 +269,15 @@ def build_deployment_name(flow_name: str, env: str) -> str:
 
 def deploy_flow(pipeline_dir: Path, env: str) -> None:
     """
-    Publica o deployment de um flow no work pool correto.
+    Publishes a flow deployment to the correct work pool.
 
-    Importante:
-        Este script assume como convenção do projeto que todo flow
-        deployável aceita o parâmetro `env`.
+    Important:
+        This script assumes, as a project convention, that every
+        deployable flow accepts the `env` parameter.
 
     Args:
-        pipeline_dir: Diretório raiz do pipeline.
-        env: Ambiente de publicação do deployment.
+        pipeline_dir: Root directory of the pipeline.
+        env: Deployment publishing environment.
 
     Returns:
         None.
@@ -322,18 +322,18 @@ def deploy_flow(pipeline_dir: Path, env: str) -> None:
         push=False,
     )
 
-    print("[deploy_flow] deployment publicado com sucesso")
+    print("[deploy_flow] deployment published successfully")
 
 
 def main() -> int:
     """
-    Detecta pipelines alterados e publica deployments no Prefect.
+    Detects changed pipelines and publishes deployments to Prefect.
 
     Args:
         None.
 
     Returns:
-        Código de saída do processo.
+        Process exit code.
     """
     branch = get_current_branch()
     changed_files = get_changed_files()
@@ -355,7 +355,7 @@ def main() -> int:
     for changed_file in changed_files:
         print(f" - {changed_file}")
 
-    # Se houve mudança em código compartilhado, republica todos os pipelines.
+    # If shared code changed, republish all pipelines.
     if should_redeploy_all(changed_files):
         pipeline_dirs = list_all_pipeline_dirs()
         print("Global/shared change detected. Redeploying all pipelines.")

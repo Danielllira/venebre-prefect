@@ -19,13 +19,13 @@ def log(
     level: Literal["debug", "info", "warning", "error", "critical"] = "info",
 ) -> None:
     """
-    Registra mensagens usando o logger do Prefect quando houver contexto ativo.
+    Logs messages using the Prefect logger when there is an active context.
 
-    Fora de um flow/task em execução, faz fallback para `print`.
+    Outside a running flow/task, falls back to `print`.
 
     Args:
-        *args: Partes da mensagem a serem registradas.
-        level: Nível de severidade do log.
+        *args: Parts of the message to be logged.
+        level: Log severity level.
     """
     try:
         get_run_logger().log(LEVELS[level], " ".join(str(arg) for arg in args))
