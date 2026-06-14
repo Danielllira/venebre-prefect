@@ -9,7 +9,7 @@ on:
       - '.github/workflows/deploy-infra.yml'
 
 jobs:
-  deploy-control-plane:
+  deploy-infra:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
