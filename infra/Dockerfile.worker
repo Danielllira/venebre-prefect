@@ -1,0 +1,7 @@
+FROM prefecthq/prefect:3.6.29-python3.13
+
+# Ref: https://docs.astral.sh/uv/guides/integration/docker/
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Ref: https://docs.prefect.io/integrations/prefect-gcp
+RUN uv pip install --system --no-cache prefect-gcp

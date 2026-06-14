@@ -1,0 +1,61 @@
+# Official Prefect 3.x Self-Hosted Documentation:
+# https://docs.prefect.io/v3/deploy/infrastructure-examples/docker-compose
+
+# Not using redis or prefect-services cuz: Cloud Run is responsible for the execution
+# The single server handles everything, so we don't need them just to increase memory cost
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=prefect
+      - POSTGRES_PASSWORD=prefect
+      - POSTGRES_DB=prefect
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect -d prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prefect-server:
+    image: prefecthq/prefect:3.6.29-python3.13
+    restart: always
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    environment:
+      - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
+      - PREFECT_API_URL=http://127.0.0.1:4200/api
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
+  worker-stg:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: always
+    command: prefect worker start --pool "cloud-run-stg" --type "cloud-run"
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+    depends_on:
+      - prefect-server
+
+
+  worker-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: always
+    command: prefect worker start --pool "cloud-run-prod" --type "cloud-run"
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+    depends_on:
+      - prefect-server
+
+volumes:
+  db_data:
