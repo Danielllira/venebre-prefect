@@ -18,8 +18,8 @@ jobs:
       - name: Copy Infra folder to VM
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USERNAME }}
+          host: ${{ vars.GCP_VM_IP }}
+          username: ${{ vars.GCP_VM_USERNAME }}
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           source: "infra/*"
           target: "~/venebre-prefect"
@@ -27,16 +27,16 @@ jobs:
       - name: Execute Deployment on VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.GCP_VM_IP }}
-          username: ${{ secrets.GCP_VM_USERNAME }}
+          host: ${{ vars.GCP_VM_IP }}
+          username: ${{ vars.GCP_VM_USERNAME }}
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           script: |
             cd ~/venebre-prefect
 
-            echo "GITHUB_CLIENT_ID=${{ secrets.OAUTH_CLIENT_ID }}" > infra/.env
+            echo "GITHUB_CLIENT_ID=${{ vars.OAUTH_CLIENT_ID }}" > infra/.env
             echo "GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}" >> infra/.env
             echo "OAUTH2_PROXY_COOKIE_SECRET=${{ secrets.OAUTH_COOKIE_SECRET }}" >> infra/.env
-            echo "ALLOWED_EMAILS=${{ secrets.OAUTH_ALLOWED_EMAILS }}" >> infra/.env
+            echo "ALLOWED_EMAILS=${{ vars.OAUTH_ALLOWED_EMAILS }}" >> infra/.env
             chmod 600 infra/.env
             
             echo "Restarting Containers"
