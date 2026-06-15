@@ -24,8 +24,6 @@ services:
     image: prefecthq/prefect:3.6.29-python3.13
     restart: always
     command: prefect server start --host 0.0.0.0
-    ports:
-      - "4200:4200"
     environment:
       - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
       - PREFECT_API_URL=http://127.0.0.1:4200/api
@@ -56,6 +54,31 @@ services:
       - PREFECT_API_URL=http://prefect-server:4200/api
     depends_on:
       - prefect-server
+
+  
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    restart: always
+    environment:
+      OAUTH2_PROXY_PROVIDER: github
+      OAUTH2_PROXY_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
+      OAUTH2_PROXY_EMAILS: ${ALLOWED_EMAILS}
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_COOKIE_SECURE: "false" 
+      OAUTH2_PROXY_UPSTREAMS: "http://prefect-server:4200"
+  
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+    - "80:80"
+    volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+    - prefect-server
+    - oauth2-proxy
 
 volumes:
   db_data:
