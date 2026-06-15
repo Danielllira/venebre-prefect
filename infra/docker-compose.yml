@@ -67,6 +67,7 @@ services:
       OAUTH2_PROXY_COOKIE_SECURE: "false"
       OAUTH2_PROXY_UPSTREAMS: "http://prefect-server:4200"
       OAUTH2_PROXY_SCOPE: "user:email read:org"
+      OAUTH2_PROXY_REDIRECT_URL: "http://pipelines.venebre.com/oauth2/callback"
 
   nginx:
     image: nginx:alpine
