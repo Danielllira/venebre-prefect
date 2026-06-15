@@ -31,7 +31,6 @@ services:
       postgres:
         condition: service_healthy
 
-
   worker-stg:
     build:
       context: .
@@ -42,7 +41,6 @@ services:
       - PREFECT_API_URL=http://prefect-server:4200/api
     depends_on:
       - prefect-server
-
 
   worker-prod:
     build:
@@ -55,7 +53,6 @@ services:
     depends_on:
       - prefect-server
 
-  
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
     restart: always
@@ -66,19 +63,19 @@ services:
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
       OAUTH2_PROXY_EMAILS: ${ALLOWED_EMAILS}
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
-      OAUTH2_PROXY_COOKIE_SECURE: "false" 
+      OAUTH2_PROXY_COOKIE_SECURE: "false"
       OAUTH2_PROXY_UPSTREAMS: "http://prefect-server:4200"
-  
+
   nginx:
     image: nginx:alpine
     restart: always
     ports:
-    - "80:80"
+      - "80:80"
     volumes:
-    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-    - prefect-server
-    - oauth2-proxy
+      - prefect-server
+      - oauth2-proxy
 
 volumes:
   db_data:
