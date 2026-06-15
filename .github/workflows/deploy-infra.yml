@@ -40,7 +40,7 @@ jobs:
             chmod 600 infra/.env
             
             echo "Restarting Containers"
-            docker compose -f infra/docker-compose.yml up -d --build
+            docker compose -f infra/docker-compose.yml up -d --build --force-recreate 
             
             echo "Cleaning old images"
             docker image prune -f 
