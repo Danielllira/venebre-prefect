@@ -2,7 +2,7 @@
 # https://docs.prefect.io/v3/deploy/infrastructure-examples/docker-compose
 
 # Not using redis or prefect-services cuz: Cloud Run is responsible for the execution
-# The single server handles everything, so we don't need them just to increase memory cost
+# The single server handles everything, so we don't need them just to increase memory 
 
 services:
   postgres:
