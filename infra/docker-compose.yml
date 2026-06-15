@@ -26,7 +26,7 @@ services:
     command: prefect server start --host 0.0.0.0
     environment:
       - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://prefect:prefect@postgres:5432/prefect
-      - PREFECT_API_URL=http://127.0.0.1:4200/api
+      - PREFECT_API_URL=http://prefect-server:4200/api
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,7 +66,7 @@ services:
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_COOKIE_SECURE: "false"
       OAUTH2_PROXY_UPSTREAMS: "http://prefect-server:4200"
-      OAUTH2_PROXY_SCOPE: "user:email read:org"
+      OAUTH2_PROXY_SCOPE: "user:email"
       OAUTH2_PROXY_REDIRECT_URL: "http://pipelines.venebre.com/oauth2/callback"
 
   nginx:
