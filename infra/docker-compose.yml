@@ -87,7 +87,7 @@ services:
       OAUTH2_PROXY_SCOPE: "user read:org"
       OAUTH2_PROXY_REDIRECT_URL: "https://pipelines.venebre.com/oauth2/callback"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:4180/ping || exit 1"]
+      test: ["CMD", "/bin/oauth2-proxy", "--version"]
       interval: 30s
       timeout: 5s
       retries: 3
