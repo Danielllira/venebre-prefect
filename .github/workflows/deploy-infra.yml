@@ -33,19 +33,17 @@ jobs:
           script: |
             cd ~/venebre-prefect
 
-            cat > infra/.env <<'ENV'
-            GITHUB_CLIENT_ID=${{ vars.OAUTH_CLIENT_ID }}
-            GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
-            OAUTH2_PROXY_COOKIE_SECRET=${{ secrets.OAUTH_COOKIE_SECRET }}
-            OAUTH_GITHUB_USERS=${{ vars.OAUTH_GITHUB_USERS }}
-            ENV
-            chmod 600 infra/.env
+            cat > infra/.htpasswd <<'HTPASSWD'
+            ${{ secrets.BASIC_AUTH_HTPASSWD }}
+            HTPASSWD
+            chmod 600 infra/.htpasswd
+            test -s infra/.htpasswd
 
             echo "Validating Compose config"
-            docker compose --env-file infra/.env -f infra/docker-compose.yml config >/dev/null
+            docker compose -f infra/docker-compose.yml config >/dev/null
             
             echo "Restarting Containers"
-            docker compose --env-file infra/.env -f infra/docker-compose.yml up -d --build --force-recreate 
+            docker compose -f infra/docker-compose.yml up -d --build --force-recreate 
             
             echo "Cleaning old images"
             docker image prune -f 
