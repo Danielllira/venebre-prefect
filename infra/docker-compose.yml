@@ -28,6 +28,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health', timeout=5)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   worker-stg:
     build:
@@ -38,7 +44,14 @@ services:
     environment:
       - PREFECT_API_URL=http://prefect-server:4200/api
     depends_on:
-      - prefect-server
+      prefect-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://prefect-server:4200/api/health', timeout=5)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   worker-prod:
     build:
@@ -49,7 +62,14 @@ services:
     environment:
       - PREFECT_API_URL=http://prefect-server:4200/api
     depends_on:
-      - prefect-server
+      prefect-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://prefect-server:4200/api/health', timeout=5)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
@@ -66,6 +86,12 @@ services:
       OAUTH2_PROXY_UPSTREAMS: "http://prefect-server:4200"
       OAUTH2_PROXY_SCOPE: "user read:org"
       OAUTH2_PROXY_REDIRECT_URL: "https://pipelines.venebre.com/oauth2/callback"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:4180/ping || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   nginx:
     image: nginx:alpine
@@ -77,8 +103,15 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro 
     depends_on:
-      - prefect-server
-      - oauth2-proxy
+      prefect-server:
+        condition: service_healthy
+      oauth2-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   db_data:
