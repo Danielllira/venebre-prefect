@@ -33,10 +33,12 @@ jobs:
           script: |
             cd ~/venebre-prefect
 
-            echo "GITHUB_CLIENT_ID=${{ vars.OAUTH_CLIENT_ID }}" > infra/.env
-            echo "GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}" >> infra/.env
-            echo "OAUTH2_PROXY_COOKIE_SECRET=${{ secrets.OAUTH_COOKIE_SECRET }}" >> infra/.env
-            echo "OAUTH_GITHUB_USERS=${{ vars.OAUTH_GITHUB_USERS }}" >> infra/.env
+            cat > infra/.env <<'ENV'
+            GITHUB_CLIENT_ID=${{ vars.OAUTH_CLIENT_ID }}
+            GITHUB_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
+            OAUTH2_PROXY_COOKIE_SECRET=${{ secrets.OAUTH_COOKIE_SECRET }}
+            OAUTH_GITHUB_USERS=${{ vars.OAUTH_GITHUB_USERS }}
+            ENV
             chmod 600 infra/.env
             
             echo "Restarting Containers"
