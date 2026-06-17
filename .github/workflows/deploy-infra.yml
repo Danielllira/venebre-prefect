@@ -40,9 +40,12 @@ jobs:
             OAUTH_GITHUB_USERS=${{ vars.OAUTH_GITHUB_USERS }}
             ENV
             chmod 600 infra/.env
+
+            echo "Validating Compose config"
+            docker compose --env-file infra/.env -f infra/docker-compose.yml config >/dev/null
             
             echo "Restarting Containers"
-            docker compose -f infra/docker-compose.yml up -d --build --force-recreate 
+            docker compose --env-file infra/.env -f infra/docker-compose.yml up -d --build --force-recreate 
             
             echo "Cleaning old images"
             docker image prune -f 
