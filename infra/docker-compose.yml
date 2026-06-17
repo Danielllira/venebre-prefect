@@ -1,5 +1,6 @@
 # Official Prefect 3.x Self-Hosted Documentation:
 # https://docs.prefect.io/v3/deploy/infrastructure-examples/docker-compose
+# Self-hosted Prefect control plane for Venebre pipelines.
 
 services:
   postgres:
