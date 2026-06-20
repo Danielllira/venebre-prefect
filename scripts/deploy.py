@@ -1,4 +1,4 @@
-# Refs:Deploy multiple flows: https://docs.prefect.io/v3/deploy/infrastructure-concepts/deploy-via-python/#deploy-multiple-flows
+# Refs: Deploy multiple flows: https://docs.prefect.io/v3/deploy/infrastructure-concepts/deploy-via-python/#deploy-multiple-flows
 import importlib
 import os
 import sys
@@ -12,7 +12,6 @@ if str(PROJECT_ROOT) not in sys.path:
 ENV = os.environ.get("ENV", "stg")
 WORK_POOL = os.environ.get("PREFECT_WORK_POOL")
 WORKER_IMAGE = os.environ.get("WORKER_IMAGE")
-
 IS_PROD = ENV == "prod"
 
 changed_folders = sys.argv[1:]
@@ -32,12 +31,12 @@ def main():
 
     for folder in changed_folders:
         folder_path = Path(folder).resolve()
-        
+
         try:
             relative_parts = folder_path.relative_to(PROJECT_ROOT).parts
             module_name = ".".join(relative_parts) + ".flows"
         except ValueError:
-            print(f"(warn) Skipping {folder}: Not inside project root.")
+            print(f"(warn) Skipping {folder}: not inside project root.")
             continue
 
         try:
@@ -46,12 +45,17 @@ def main():
             print(f"(warn) Skipping {folder}: flows.py not found.")
             continue
 
-        contracts = getattr(module, "pipelines", [])
-        if not contracts:
-            print(f"(warn) Skipping {folder}: 'pipelines' contract is missing or empty.")
-            continue
+        contracts = getattr(module, "pipelines", None)
+        if contracts is None:
+            print(f"(error) {folder}/flows.py is missing the 'pipelines' contract.")
+            print(f"        Every flows.py must declare 'pipelines' at the bottom of the file.")
+            sys.exit(1)
 
-        print(f"[(flow) Processing {folder}...")
+        if len(contracts) == 0:
+            print(f"(error) {folder}/flows.py has an empty 'pipelines' contract.")
+            sys.exit(1)
+
+        print(f"(flow) Processing {folder}...")
 
         for contract in contracts:
             flow_obj = contract["flow"]
@@ -73,7 +77,7 @@ def main():
             print(f" -> Prepared: {deploy_name}")
 
     if deployments_to_apply:
-        print(f"\n[deploy] Pushing {len(deployments_to_apply)} deployments to Prefect...")
+        print(f"\n(deploy) Pushing {len(deployments_to_apply)} deployments to Prefect...")
         deploy(
             *deployments_to_apply,
             image=WORKER_IMAGE,
@@ -83,6 +87,7 @@ def main():
         print("(deploy) Success!")
     else:
         print("\n(info) No valid contracts found to deploy.")
+
 
 if __name__ == "__main__":
     main()
