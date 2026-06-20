@@ -1,4 +1,4 @@
-name: Deploy Infrastructure to GCP
+name: Deploy Infra
 
 on:
   push:
@@ -9,13 +9,13 @@ on:
       - '.github/workflows/deploy-infra.yml'
 
 jobs:
-  deploy-infra:
+  deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
-      - name: Copy Infra folder to VM
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy infra to VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ vars.GCP_VM_IP }}
@@ -24,7 +24,7 @@ jobs:
           source: "infra/*"
           target: "~/venebre-prefect"
 
-      - name: Execute Deployment on VM
+      - name: Restart containers
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ vars.GCP_VM_IP }}
@@ -32,18 +32,8 @@ jobs:
           key: ${{ secrets.GCP_VM_SSH_KEY }}
           script: |
             cd ~/venebre-prefect
-
-            cat > infra/.htpasswd <<'HTPASSWD'
-            ${{ secrets.BASIC_AUTH_HTPASSWD }}
-            HTPASSWD
-            chmod 600 infra/.htpasswd
-            test -s infra/.htpasswd
-
-            echo "Validating Compose config"
-            docker compose -f infra/docker-compose.yml config >/dev/null
-            
-            echo "Restarting Containers"
-            docker compose -f infra/docker-compose.yml up -d --build --force-recreate 
-            
-            echo "Cleaning old images"
-            docker image prune -f 
+            docker compose -f infra/docker-compose.yml config > /dev/null
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+            PREFECT_API_PASSWORD=${{ secrets.PREFECT_API_PASSWORD }} \
+            docker compose -f infra/docker-compose.yml up -d --build --force-recreate
+            docker image prune -f
