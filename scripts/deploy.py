@@ -3,6 +3,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
+
 from prefect import deploy
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -15,6 +16,7 @@ WORKER_IMAGE = os.environ.get("WORKER_IMAGE")
 IS_PROD = ENV == "prod"
 
 changed_folders = sys.argv[1:]
+
 
 def main():
     if not changed_folders:
@@ -48,7 +50,7 @@ def main():
         contracts = getattr(module, "pipelines", None)
         if contracts is None:
             print(f"(error) {folder}/flows.py is missing the 'pipelines' contract.")
-            print(f"        Every flows.py must declare 'pipelines' at the bottom of the file.")
+            print("Every flows.py must declare 'pipelines' at the bottom of the file.")
             sys.exit(1)
 
         if len(contracts) == 0:

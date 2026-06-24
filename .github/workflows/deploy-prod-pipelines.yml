@@ -1,0 +1,86 @@
+name: Deploy Flows (Prod)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pipelines/**'
+      - 'utils/**'
+      - 'infra/docker/Dockerfile.worker'
+      - 'uv.lock'
+      - 'scripts/deploy.py'
+
+env:
+  ENV: prod
+  PREFECT_WORK_POOL: venebre-prod-pool
+  GCP_REGION: us-central1
+  ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID_PROD }}/prefect-repo/worker
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Changed Files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+
+      - name: Resolve Target Folders
+        id: resolver
+        run: |
+          FILES="${{ steps.changed-files.outputs.all_changed_files }}"
+
+          if echo "$FILES" | grep -qE '(^utils/|^scripts/deploy\.py|^infra/docker/Dockerfile\.worker|^uv\.lock)'; then
+            TARGETS=$(find pipelines -mindepth 2 -maxdepth 2 -type d | sort | tr '\n' ' ')
+            echo "Core change detected — deploying all pipelines."
+          else
+            TARGETS=$(echo "$FILES" | grep -oE 'pipelines/[^/]+/[^/]+' | sort -u | tr '\n' ' ')
+            echo "Deploying modified pipelines only."
+          fi
+
+          echo "Targets: $TARGETS"
+          echo "folders=$TARGETS" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to Google Cloud
+        if: steps.resolver.outputs.folders != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_PROD }}
+
+      - name: Configure Docker Auth
+        if: steps.resolver.outputs.folders != ''
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & Push Worker Image
+        if: steps.resolver.outputs.folders != ''
+        run: |
+          IMAGE_TAG="${{ env.ARTIFACT_REGISTRY }}:${{ github.sha }}"
+          docker build -f infra/docker/Dockerfile.worker -t "$IMAGE_TAG" .
+          docker push "$IMAGE_TAG"
+          echo "WORKER_IMAGE=$IMAGE_TAG" >> "$GITHUB_ENV"
+
+      - name: Setup uv
+        if: steps.resolver.outputs.folders != ''
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install Dependencies
+        if: steps.resolver.outputs.folders != ''
+        run: uv sync --frozen
+
+      - name: Deploy to Prefect
+        if: steps.resolver.outputs.folders != ''
+        env:
+          PREFECT_API_URL: ${{ secrets.PREFECT_API_URL }}
+          PREFECT_API_AUTH_STRING: "prefect:${{ secrets.PREFECT_API_PASSWORD }}"
+        run: uv run python scripts/deploy.py ${{ steps.resolver.outputs.folders }}
